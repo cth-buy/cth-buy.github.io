@@ -475,16 +475,16 @@
 
     <div class="quick-title">Quick buy amount</div>
     <div class="quick-grid">
-      <button class="quick-btn" data-amount="0.001">0.001 BNB</button>
-      <button class="quick-btn" data-amount="0.002">0.002 BNB</button>
-      <button class="quick-btn" data-amount="0.005">0.005 BNB</button>
-      <button class="quick-btn" data-amount="0.01">0.01 BNB</button>
+      <button id="quick1" class="quick-btn" data-amount="0.001">0.001 BNB</button>
+      <button id="quick2" class="quick-btn" data-amount="0.002">0.002 BNB</button>
+      <button id="quick3" class="quick-btn" data-amount="0.005">0.005 BNB</button>
+      <button id="quick4" class="quick-btn" data-amount="0.01">0.01 BNB</button>
     </div>
 
     <div class="custom-amount-wrap">
       <div class="custom-amount-label">
         <span>Amount to pay</span>
-        <span>BNB on BNB Smart Chain</span>
+        <span id="payAssetLabel">BNB on BNB Smart Chain</span>
       </div>
       <div class="custom-amount-row">
         <input id="customAmount" inputmode="decimal" placeholder="Enter BNB amount" />
@@ -569,7 +569,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.8</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.9</footer>
 </div>
 
 <script>
@@ -925,31 +925,58 @@ function bnbToCthPath(){
 function setPaymentMode(mode){
   paymentMode = mode;
   const bnb = mode === "BNB";
+
+  // Tabs
   $("payBnbTab").classList.toggle("active", bnb);
   $("payUsdtTab").classList.toggle("active", !bnb);
-  $("customTokenLabel").textContent = bnb ? "BNB" : "USDT (BNB)";
-  $("payAssetLabel").textContent = bnb ? "BNB on BNB Smart Chain" : "USDT on BNB Smart Chain";
+
+  // Visible payment labels
+  if($("customTokenLabel")) $("customTokenLabel").textContent = bnb ? "BNB" : "USDT (BNB)";
+  if($("payAssetLabel")) $("payAssetLabel").textContent = bnb ? "BNB on BNB Smart Chain" : "USDT on BNB Smart Chain";
   $("customAmount").placeholder = bnb ? "Enter BNB amount" : "Enter USDT amount";
   $("buyBtn").textContent = bnb ? "Buy CTH with BNB" : "Buy CTH with USDT";
+
   $("payHint").innerHTML = bnb
-    ? "<strong>Recommended for mobile:</strong> one MetaMask confirmation. No token approval required."
-    : "USDT purchases may require an approval transaction the first time.";
+    ? "<strong>Recommended for mobile:</strong> pay with BNB and confirm one swap transaction."
+    : "Pay with USDT on BNB Smart Chain. The first purchase may require an approval transaction.";
 
-  const vals = bnb
-    ? [["0.001","0.001 BNB"],["0.002","0.002 BNB"],["0.005","0.005 BNB"],["0.01","0.01 BNB"]]
-    : [["5","$5"],["10","$10"],["20","$20"],["50","$50"]];
+  // Quick-buy presets must follow the selected payment asset.
+  const presets = bnb
+    ? [
+        ["quick1","0.001","0.001 BNB"],
+        ["quick2","0.002","0.002 BNB"],
+        ["quick3","0.005","0.005 BNB"],
+        ["quick4","0.01","0.01 BNB"]
+      ]
+    : [
+        ["quick1","5","$5"],
+        ["quick2","10","$10"],
+        ["quick3","20","$20"],
+        ["quick4","50","$50"]
+      ];
 
-  document.querySelectorAll(".quick-btn").forEach((btn,i)=>{
-    btn.dataset.amount = vals[i][0];
-    btn.textContent = vals[i][1];
+  presets.forEach(([id,value,label])=>{
+    const btn = $(id);
+    if(btn){
+      btn.dataset.amount = value;
+      btn.textContent = label;
+    }
   });
 
+  // Never carry an amount/quote across BNB <-> USDT modes.
   $("customAmount").value = "";
   $("amountIn").value = "";
   $("amountOut").value = "";
   $("minReceived").textContent = "—";
   $("priceImpact").textContent = "—";
   lastQuote = 0n;
+
+  setStatus(
+    bnb
+      ? "BNB payment selected. Choose a BNB preset or enter your own amount."
+      : "USDT payment selected. Choose a USDT preset or enter your own amount.",
+    "ok"
+  );
 }
 
 async function getReferenceQuote(quoter){
