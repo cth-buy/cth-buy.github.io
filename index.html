@@ -525,7 +525,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.5</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.6</footer>
 </div>
 
 <script>
@@ -739,10 +739,9 @@ async function refreshBalances(){
   const cthHuman = Number(ethers.formatUnits(c,cthDecimals));
   const bnbHuman = Number(ethers.formatEther(bnb));
 
-  $("usdtBal").textContent = `USDT (BNB) balance: ${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})}`;
-  $("cthBal").textContent = `CTH balance: ${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})}`;
-  $("usdtBscBalance").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
-  $("bnbGasBalance").textContent = `${bnbHuman.toLocaleString(undefined,{maximumFractionDigits:6})} BNB`;
+  if($("cthBal")) $("cthBal").textContent = `CTH balance: ${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})}`;
+  if($("usdtBscBalance")) $("usdtBscBalance").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
+  if($("bnbGasBalance")) $("bnbGasBalance").textContent = `${bnbHuman.toLocaleString(undefined,{maximumFractionDigits:6})} BNB`;
 
   $("summaryCth").textContent = `${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})} CTH`;
   $("summaryUsdt").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
