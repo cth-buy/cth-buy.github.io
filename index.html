@@ -6,6 +6,7 @@
   <title>Buy CTH | BNB Smart Chain</title>
   <meta name="description" content="Buy Wrapped CTH Token directly with USDT on BNB Smart Chain via PancakeSwap V3." />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
     :root{
       --bg:#08101d; --panel:#101b2f; --panel2:#0b1526; --text:#f4f7fb;
@@ -112,6 +113,39 @@
     .section-heading p{margin:4px 0 0;color:var(--muted);font-size:13px}
 
 
+
+    .market-section{
+      max-width:1180px;margin:0 auto 28px;padding:0 16px;
+    }
+    .market-panel{
+      background:linear-gradient(180deg,rgba(16,27,47,.98),rgba(11,21,38,.98));
+      border:1px solid var(--line);border-radius:20px;padding:20px;
+    }
+    .market-head{
+      display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;
+    }
+    .market-head h2{margin:0;font-size:22px}
+    .market-sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .timeframe-row{display:flex;gap:8px;flex-wrap:wrap}
+    .tf-btn{
+      width:auto;padding:8px 11px;border-radius:10px;background:#17263e;color:var(--text);
+      border:1px solid var(--line);font-size:12px
+    }
+    .tf-btn.active{background:var(--accent);color:#06100f;border-color:transparent}
+    .chart-wrap{
+      margin-top:16px;height:320px;padding:12px;border:1px solid var(--line);
+      border-radius:14px;background:#091322
+    }
+    .market-stats{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px
+    }
+    .market-stat{
+      padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1424
+    }
+    .market-stat .label{font-size:11px;color:var(--muted)}
+    .market-stat .val{font-size:16px;font-weight:800;margin-top:4px}
+    .market-note{margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5}
+
     .custom-amount-wrap{
       margin-top:12px;padding:13px 14px;
       border:1px solid var(--line);border-radius:14px;background:#0a1424;
@@ -159,7 +193,7 @@
     .chain-box{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
     .chain-box strong{font-size:13px}
 
-    @media(max-width:760px){.topnav-inner{align-items:flex-start;flex-direction:column}.nav-links{width:100%;justify-content:flex-start}.about{grid-template-columns:1fr}.feature-list{grid-template-columns:1fr}.hero-card,.hero-card img.banner{min-height:220px}}
+    @media(max-width:760px){.topnav-inner{align-items:flex-start;flex-direction:column}.nav-links{width:100%;justify-content:flex-start}.about{grid-template-columns:1fr}.feature-list{grid-template-columns:1fr}.hero-card,.hero-card img.banner{min-height:220px}.market-stats{grid-template-columns:1fr 1fr}.chart-wrap{height:260px}}
     @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
   </style>
 </head>
@@ -174,6 +208,7 @@
     <div class="nav-links">
       <a href="#home">Home</a>
       <a href="#about">About CTH</a>
+      <a href="#market">Market</a>
       <a href="#buy" class="primary-nav">Buy CTH</a>
       <a href="https://aiboxtoken.github.io/" target="_blank" rel="noopener">AiBoxs</a>
       <a href="https://aibox.myqnapcloud.com/shop" target="_blank" rel="noopener">AiBox Cloud</a>
@@ -224,6 +259,50 @@
       <strong>View CTH on BscScan ↗</strong>
       <span>Contract and on-chain activity</span>
     </a>
+  </div>
+</section>
+
+
+<section id="market" class="market-section">
+  <div class="market-panel">
+    <div class="market-head">
+      <div>
+        <h2>CTH Market</h2>
+        <div class="market-sub">Live CTH/USDT market data from GeckoTerminal · BNB Smart Chain</div>
+      </div>
+      <div class="timeframe-row">
+        <button class="tf-btn" data-tf="1h">1H</button>
+        <button class="tf-btn" data-tf="6h">6H</button>
+        <button class="tf-btn active" data-tf="24h">24H</button>
+      </div>
+    </div>
+
+    <div class="market-stats">
+      <div class="market-stat">
+        <div class="label">Current price</div>
+        <div id="marketPrice" class="val">—</div>
+      </div>
+      <div class="market-stat">
+        <div class="label">24h change</div>
+        <div id="marketChange" class="val">—</div>
+      </div>
+      <div class="market-stat">
+        <div class="label">24h volume</div>
+        <div id="marketVolume" class="val">—</div>
+      </div>
+      <div class="market-stat">
+        <div class="label">Liquidity</div>
+        <div id="marketLiquidity" class="val">—</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="cthChart"></canvas>
+    </div>
+
+    <div class="market-note">
+      The chart refreshes automatically. Market data is informational and may differ slightly from the executable PancakeSwap quote shown in the Buy CTH section.
+    </div>
   </div>
 </section>
 
@@ -369,7 +448,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.04.2</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05</footer>
 </div>
 
 <script>
@@ -731,6 +810,134 @@ $("amountIn").addEventListener("input", ()=>{
 });
 $("slippage").addEventListener("change", ()=>{ if($("amountIn").value) getQuote(); });
 
+
+const GECKO_POOL = "0x0d5209ac05f6a72b53cbd48d0a67e722234662d8";
+let cthChart = null;
+let activeTf = "24h";
+let marketTimer = null;
+
+function fmtUsd(n){
+  const x = Number(n);
+  if(!Number.isFinite(x)) return "—";
+  if(x >= 1000000) return `$${(x/1000000).toFixed(2)}M`;
+  if(x >= 1000) return `$${(x/1000).toFixed(2)}K`;
+  return `$${x.toLocaleString(undefined,{maximumFractionDigits:6})}`;
+}
+
+function fmtPct(n){
+  const x = Number(n);
+  if(!Number.isFinite(x)) return "—";
+  return `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
+}
+
+async function fetchPoolStats(){
+  const url = `https://api.geckoterminal.com/api/v2/networks/bsc/pools/${GECKO_POOL}`;
+  const r = await fetch(url, {headers:{"accept":"application/json"}});
+  if(!r.ok) throw new Error(`Market data HTTP ${r.status}`);
+  const j = await r.json();
+  const a = j?.data?.attributes || {};
+  $("marketPrice").textContent = a.base_token_price_usd ? fmtUsd(a.base_token_price_usd) : "—";
+  const change = a.price_change_percentage?.h24;
+  $("marketChange").textContent = change != null ? fmtPct(change) : "—";
+  $("marketChange").className = "val " + (Number(change) >= 0 ? "impact-low" : "impact-high");
+  $("marketVolume").textContent = a.volume_usd?.h24 ? fmtUsd(a.volume_usd.h24) : "—";
+  $("marketLiquidity").textContent = a.reserve_in_usd ? fmtUsd(a.reserve_in_usd) : "—";
+}
+
+function tfConfig(tf){
+  if(tf === "1h") return {timeframe:"minute", aggregate:5, limit:12};
+  if(tf === "6h") return {timeframe:"minute", aggregate:15, limit:24};
+  return {timeframe:"hour", aggregate:1, limit:24};
+}
+
+async function fetchOhlcv(tf="24h"){
+  const c = tfConfig(tf);
+  const url = `https://api.geckoterminal.com/api/v2/networks/bsc/pools/${GECKO_POOL}/ohlcv/${c.timeframe}?aggregate=${c.aggregate}&limit=${c.limit}&currency=usd&token=base`;
+  const r = await fetch(url, {headers:{"accept":"application/json"}});
+  if(!r.ok) throw new Error(`Chart data HTTP ${r.status}`);
+  const j = await r.json();
+  const list = j?.data?.attributes?.ohlcv_list || [];
+  return list.slice().reverse().map(row=>({
+    t: new Date(row[0]*1000),
+    close: Number(row[4])
+  }));
+}
+
+function renderCthChart(points){
+  const ctx = document.getElementById("cthChart");
+  if(!ctx || !window.Chart) return;
+
+  const labels = points.map(p=>{
+    const d = p.t;
+    return activeTf === "24h"
+      ? d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
+      : d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  });
+  const data = points.map(p=>p.close);
+
+  if(cthChart) cthChart.destroy();
+
+  cthChart = new Chart(ctx, {
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"CTH / USD",
+        data,
+        borderWidth:2,
+        pointRadius:0,
+        tension:.25,
+        fill:false
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:(c)=>` ${fmtUsd(c.parsed.y)}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          grid:{display:false},
+          ticks:{maxTicksLimit:8}
+        },
+        y:{
+          grid:{},
+          ticks:{
+            callback:(v)=>fmtUsd(v)
+          }
+        }
+      }
+    }
+  });
+}
+
+async function refreshMarket(){
+  try{
+    await Promise.all([
+      fetchPoolStats(),
+      fetchOhlcv(activeTf).then(renderCthChart)
+    ]);
+  }catch(e){
+    console.warn("Market refresh failed:", e);
+  }
+}
+
+document.querySelectorAll(".tf-btn").forEach(btn=>{
+  btn.addEventListener("click", async ()=>{
+    document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTf = btn.dataset.tf;
+    await refreshMarket();
+  });
+});
+
 async function initWalletUI(){
   if(window.ethereum){
     if(isMetaMask()){
@@ -780,6 +987,8 @@ if(window.ethereum){
   window.ethereum.on?.("chainChanged", ()=>location.reload());
 }
 initWalletUI();
+refreshMarket();
+marketTimer = setInterval(refreshMarket, 60000);
 </script>
 </body>
 </html>
