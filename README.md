@@ -1,29 +1,27 @@
-# CTH Direct Buy — Rev.03
+# CTH Direct Buy — Rev.04
 
-Rev.03 builds on Rev.02 and keeps the MetaMask + PancakeSwap V3 direct-buy flow.
+Rev.04 updates the existing CTH direct-buy page without removing the Rev.03 swap functionality.
 
-## New in Rev.03
-- Live indicative CTH price derived from PancakeSwap V3 on-chain quote
-- Quick-buy buttons: $5 / $10 / $20 / $50 (entered as 5/10/20/50 USDT)
-- Auto quote after typing, with a short debounce
-- Estimated CTH output updates from the live quote
-- Estimated price-impact indicator based on a 1-USDT marginal reference quote
-- Minimum received remains slippage-adjusted
-- Latest successful swap shows transaction hash
-- One-click **View on BscScan** link after confirmation
-- Mobile + MetaMask deep-link support retained
-- BNB Smart Chain detection/switching retained
-- Footer updated to Rev.03
+## New in Rev.04
+- Sticky navigation bar
+- Navigation buttons: Home / About CTH / Buy CTH / AiBoxs / AiBox Cloud
+- CTH hero banner
+- CTH logo
+- About CTH section
+- Ecosystem links section
+- Link to AiBoxs page: https://aiboxtoken.github.io/
+- Link to AiBox Cloud: https://aibox.myqnapcloud.com/shop
+- Link to CTH contract on BscScan
+- Existing MetaMask + PancakeSwap V3 buy flow preserved
+- Footer updated to Rev.04
 
-## Important
-The displayed “CTH price” is an indicative USDT price derived from the live on-chain pool quote.
-It is not an oracle price. Low liquidity can make larger orders execute at a substantially worse rate.
-Always test with a small amount first.
+## Files
+- index.html
+- assets/cth-logo.png
+- assets/cth-banner.png
 
-## Publish to GitHub Pages
-Replace your existing `index.html` with the Rev.03 file, commit, and push to `main`.
+## GitHub Desktop
+Replace the current repo files with these files, commit as:
+`Update CTH web Rev.04`
 
-CTH:
-`0x8888888809b788CD6e40a2D27e67425D5D0B5d3B`
-
-Rev.03
+Then Push origin.

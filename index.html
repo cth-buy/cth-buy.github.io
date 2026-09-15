@@ -18,7 +18,7 @@
       background:radial-gradient(circle at 30% -10%,#18355a 0,transparent 35%),var(--bg);
       color:var(--text); padding:28px 16px;
     }
-    .wrap{max-width:720px;margin:0 auto}
+    .wrap{max-width:720px;margin:0 auto;padding-bottom:10px}
     .brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
     .brand h1{font-size:24px;margin:0}
     .network{font-size:12px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
@@ -50,6 +50,67 @@
     footer{text-align:center;color:#687991;font-size:11px;margin-top:18px}
 
 
+
+    html{scroll-behavior:smooth}
+    .topnav{
+      position:sticky;top:0;z-index:1000;
+      backdrop-filter:blur(16px);
+      background:rgba(8,16,29,.82);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .topnav-inner{
+      max-width:1180px;margin:0 auto;padding:11px 16px;
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+    }
+    .nav-brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--text);text-decoration:none}
+    .nav-brand img{width:34px;height:34px;border-radius:50%;object-fit:cover}
+    .nav-links{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .nav-links a{
+      padding:9px 12px;border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;
+      border:1px solid transparent;
+    }
+    .nav-links a:hover{color:var(--text);border-color:var(--line);background:#111d31}
+    .nav-links a.primary-nav{color:#07110f;background:var(--accent)}
+    .hero{
+      max-width:1180px;margin:22px auto 24px;padding:0 16px;
+    }
+    .hero-card{
+      position:relative;overflow:hidden;border-radius:24px;border:1px solid var(--line);
+      min-height:360px;background:#0a1424;
+      box-shadow:0 26px 70px rgba(0,0,0,.28);
+    }
+    .hero-card img.banner{
+      width:100%;height:100%;min-height:360px;object-fit:cover;display:block;
+    }
+    .hero-overlay{
+      position:absolute;inset:0;
+      background:linear-gradient(90deg,rgba(3,8,18,.12),rgba(3,8,18,.15) 45%,rgba(3,8,18,.42));
+      pointer-events:none;
+    }
+    .about{
+      max-width:1180px;margin:0 auto 28px;padding:0 16px;
+      display:grid;grid-template-columns:1.15fr .85fr;gap:18px;
+    }
+    .info-card,.links-card{
+      background:linear-gradient(180deg,rgba(16,27,47,.98),rgba(11,21,38,.98));
+      border:1px solid var(--line);border-radius:20px;padding:20px;
+    }
+    .info-title{display:flex;gap:14px;align-items:center}
+    .info-title img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+    .info-title h2{margin:0;font-size:24px}
+    .info-card p{color:var(--muted);line-height:1.7;margin:14px 0 0}
+    .feature-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+    .feature-item{padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1424;font-size:13px}
+    .project-link{
+      display:block;padding:16px;border-radius:14px;border:1px solid var(--line);
+      background:#0a1424;margin-top:10px;
+    }
+    .project-link strong{display:block;font-size:16px;color:var(--text)}
+    .project-link span{display:block;margin-top:4px;color:var(--muted);font-size:12px}
+    .section-heading{max-width:720px;margin:0 auto 12px;padding:0 16px}
+    .section-heading h2{margin:0;font-size:22px}
+    .section-heading p{margin:4px 0 0;color:var(--muted);font-size:13px}
+
     .quick-title{margin-top:14px;font-size:12px;color:var(--muted)}
     .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
     .quick-btn{padding:10px 8px;background:#17263e;color:var(--text);border:1px solid var(--line);font-size:13px}
@@ -77,10 +138,79 @@
     .chain-box{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
     .chain-box strong{font-size:13px}
 
+    @media(max-width:760px){.topnav-inner{align-items:flex-start;flex-direction:column}.nav-links{width:100%;justify-content:flex-start}.about{grid-template-columns:1fr}.feature-list{grid-template-columns:1fr}.hero-card,.hero-card img.banner{min-height:220px}}
     @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
   </style>
 </head>
 <body>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <a class="nav-brand" href="#home">
+      <img src="assets/cth-logo.png" alt="CTH logo">
+      <span>CTH · ChangCoin</span>
+    </a>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#about">About CTH</a>
+      <a href="#buy" class="primary-nav">Buy CTH</a>
+      <a href="https://aiboxtoken.github.io/" target="_blank" rel="noopener">AiBoxs</a>
+      <a href="https://aibox.myqnapcloud.com/shop" target="_blank" rel="noopener">AiBox Cloud</a>
+    </div>
+  </div>
+</nav>
+
+<section id="home" class="hero">
+  <div class="hero-card">
+    <img class="banner" src="assets/cth-banner.png" alt="CTH ChangCoin banner">
+    <div class="hero-overlay"></div>
+  </div>
+</section>
+
+<section id="about" class="about">
+  <div class="info-card">
+    <div class="info-title">
+      <img src="assets/cth-logo.png" alt="CTH logo">
+      <div>
+        <div class="muted">CTH · ChangCoin</div>
+        <h2>Real-World Blockchain Utility</h2>
+      </div>
+    </div>
+    <p>
+      CTH is available on BNB Smart Chain and can be purchased directly with USDT through the
+      PancakeSwap V3 liquidity pool. This page is a non-custodial interface: the user keeps control
+      of the wallet and confirms every transaction in MetaMask.
+    </p>
+    <div class="feature-list">
+      <div class="feature-item"><strong>BNB Smart Chain</strong><br><span class="muted">Fast EVM-compatible network</span></div>
+      <div class="feature-item"><strong>Direct USDT Buy</strong><br><span class="muted">Swap USDT → CTH on-page</span></div>
+      <div class="feature-item"><strong>MetaMask Ready</strong><br><span class="muted">Desktop and mobile support</span></div>
+      <div class="feature-item"><strong>On-chain Quote</strong><br><span class="muted">Live PancakeSwap V3 pricing</span></div>
+    </div>
+  </div>
+
+  <div class="links-card">
+    <div class="muted">Ecosystem links</div>
+    <a class="project-link" href="https://aiboxtoken.github.io/" target="_blank" rel="noopener">
+      <strong>AiBoxs Page ↗</strong>
+      <span>AI · Cloud · Automation · Web3</span>
+    </a>
+    <a class="project-link" href="https://aibox.myqnapcloud.com/shop" target="_blank" rel="noopener">
+      <strong>AiBox Cloud ↗</strong>
+      <span>Cloud storage plans and AiBox services</span>
+    </a>
+    <a class="project-link" href="https://bscscan.com/token/0x8888888809b788CD6e40a2D27e67425D5D0B5d3B" target="_blank" rel="noopener">
+      <strong>View CTH on BscScan ↗</strong>
+      <span>Contract and on-chain activity</span>
+    </a>
+  </div>
+</section>
+
+<div id="buy" class="section-heading">
+  <h2>Buy CTH</h2>
+  <p>Connect MetaMask, switch to BNB Smart Chain, enter USDT and review the live quote before buying.</p>
+</div>
+
 <div class="wrap">
   <div class="brand">
     <div>
@@ -207,7 +337,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.03</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.04</footer>
 </div>
 
 <script>
