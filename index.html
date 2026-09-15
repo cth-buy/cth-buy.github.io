@@ -449,7 +449,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05.1</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05.2</footer>
 </div>
 
 <script>
@@ -477,7 +477,7 @@ const quoterAbi = [
 ];
 
 const routerAbi = [
-  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)"
+  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)"
 ];
 
 let provider, signer, account;
@@ -737,11 +737,13 @@ async function buy(){
 
     const router = new ethers.Contract(CFG.router, routerAbi, signer);
     setStatus("Step 2/2: Confirm the CTH purchase in your wallet…", "warn");
+    const deadline = Math.floor(Date.now() / 1000) + 600;
     const tx = await router.exactInputSingle({
       tokenIn: CFG.usdt,
       tokenOut: CFG.cth,
       fee: CFG.fee,
       recipient: account,
+      deadline,
       amountIn: q.amountIn,
       amountOutMinimum: q.minOut,
       sqrtPriceLimitX96: 0
@@ -756,7 +758,16 @@ async function buy(){
     await refreshBalances();
     await getQuote();
   }catch(e){
-    setStatus(e.shortMessage || e.reason || e.message || "Swap failed or was rejected.", "err");
+    console.error("CTH swap error:", e);
+    let msg = e.shortMessage || e.reason || e.message || "Swap failed or was rejected.";
+    if(String(msg).toLowerCase().includes("user rejected")){
+      msg = "Transaction was cancelled in MetaMask.";
+    }else if(String(msg).toLowerCase().includes("insufficient funds")){
+      msg = "Not enough BNB to pay the BNB Smart Chain gas fee.";
+    }else if(String(msg).toLowerCase().includes("execution reverted")){
+      msg = "Swap reverted on-chain. Refresh the quote and try again with a smaller amount or higher slippage.";
+    }
+    setStatus(msg, "err");
   }
 }
 
