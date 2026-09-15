@@ -392,18 +392,8 @@
 
     <div id="gasWarning" class="status"></div>
 
-    <div class="amountbox">
-      <div class="row">
-        <span class="muted">You pay</span>
-        <span class="muted" id="usdtBal">USDT balance: —</span>
-      </div>
-      <div class="row" style="margin-top:7px">
-        <input id="amountIn" inputmode="decimal" placeholder="0.00" />
-        <div class="token">USDT (BNB)</div>
-      </div>
-    </div>
-
-    <div class="quick-title">Quick buy amount</div>
+    <input id="amountIn" type="hidden" value="">
+<div class="quick-title">Quick buy amount</div>
     <div class="quick-grid">
       <button class="quick-btn" data-amount="5">$5</button>
       <button class="quick-btn" data-amount="10">$10</button>
@@ -413,11 +403,11 @@
 
     <div class="custom-amount-wrap">
       <div class="custom-amount-label">
-        <span>Custom amount</span>
-        <span>Enter any USDT amount</span>
+        <span>Amount to buy</span>
+        <span>USDT on BNB Smart Chain</span>
       </div>
       <div class="custom-amount-row">
-        <input id="customAmount" inputmode="decimal" placeholder="e.g. 25.00" />
+        <input id="customAmount" inputmode="decimal" placeholder="Enter USDT amount" />
         <span class="custom-token">USDT (BNB)</span>
       </div>
     </div>
@@ -499,7 +489,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.1</footer>
 </div>
 
 <script>
@@ -673,8 +663,8 @@ async function refreshBalances(){
     $("gasWarning").className = "status err";
   }else{
     $("bnbGasBalance").className = "val gas-ok";
-    $("gasWarning").textContent = "BNB gas balance looks sufficient for a small swap.";
-    $("gasWarning").className = "status ok";
+    $("gasWarning").textContent = "";
+    $("gasWarning").className = "status";
   }
 }
 
