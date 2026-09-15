@@ -177,6 +177,24 @@
     .metric .value{font-weight:750;margin-top:3px}
     .impact-low{color:var(--ok)} .impact-mid{color:var(--warn)} .impact-high{color:var(--danger)}
 
+
+    .wallet-summary{
+      display:none;margin-top:12px;padding:14px;
+      border:1px solid var(--line);border-radius:14px;background:#0a1424
+    }
+    .wallet-summary.show{display:block}
+    .wallet-summary-grid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:10px
+    }
+    .wallet-summary-item{
+      padding:11px;border:1px solid var(--line);border-radius:12px;background:#091322
+    }
+    .wallet-summary-item .label{font-size:11px;color:var(--muted)}
+    .wallet-summary-item .value{font-size:18px;font-weight:800;margin-top:3px}
+    .wallet-summary-address{
+      margin-top:10px;color:var(--muted);font-size:12px;word-break:break-all
+    }
+
     .balance-strip{
       display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px
     }
@@ -219,7 +237,7 @@
     .chain-box strong{font-size:13px}
 
     @media(max-width:760px){.topnav-inner{align-items:flex-start;flex-direction:column}.nav-links{width:100%;justify-content:flex-start}.about{grid-template-columns:1fr}.feature-list{grid-template-columns:1fr}.hero-card,.hero-card img.banner{min-height:220px}.market-stats{grid-template-columns:1fr 1fr}.chart-wrap{height:260px}}
-    @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.balance-strip,.wallet-tools{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
+    @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.balance-strip,.wallet-tools,.wallet-summary-grid{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
   </style>
 </head>
 <body>
@@ -372,6 +390,24 @@
       </div>
     </div>
 
+    <div id="walletSummary" class="wallet-summary">
+      <div class="wallet-summary-grid">
+        <div class="wallet-summary-item">
+          <div class="label">CTH in wallet</div>
+          <div id="summaryCth" class="value">—</div>
+        </div>
+        <div class="wallet-summary-item">
+          <div class="label">USDT (BNB)</div>
+          <div id="summaryUsdt" class="value">—</div>
+        </div>
+        <div class="wallet-summary-item">
+          <div class="label">BNB gas</div>
+          <div id="summaryBnb" class="value">—</div>
+        </div>
+      </div>
+      <div id="summaryAddress" class="wallet-summary-address"></div>
+    </div>
+
     <div class="balance-strip">
       <div class="balance-chip">
         <div class="label">USDT on BNB Smart Chain</div>
@@ -489,7 +525,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.4</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.5</footer>
 </div>
 
 <script>
@@ -521,6 +557,7 @@ const routerAbi = [
 ];
 
 let provider, signer, account;
+let injectedProvider = null;
 let usdtDecimals = 18, cthDecimals = 18;
 let lastQuote = 0n, lastAmountIn = 0n;
 let referenceQuote = 0n, quoteTimer = null;
@@ -531,6 +568,36 @@ const short = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : "Not connected";
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const isMetaMask = () => !!(window.ethereum && window.ethereum.isMetaMask);
+
+function getMetaMaskProvider(){
+  const eth = window.ethereum;
+  if(!eth) return null;
+
+  if(Array.isArray(eth.providers) && eth.providers.length){
+    const mm = eth.providers.find(p => p && p.isMetaMask);
+    if(mm) return mm;
+  }
+
+  if(eth.isMetaMask) return eth;
+  return eth;
+}
+
+async function waitForWalletProvider(timeoutMs=5000){
+  const started = Date.now();
+  while(Date.now() - started < timeoutMs){
+    const p = getMetaMaskProvider();
+    if(p) return p;
+    await new Promise(r=>setTimeout(r,250));
+  }
+  return null;
+}
+
+function makeBrowserProvider(){
+  injectedProvider = getMetaMaskProvider();
+  if(!injectedProvider) return null;
+  return new ethers.BrowserProvider(injectedProvider);
+}
+
 
 function setWalletBadge(state, text){
   $("walletDot").className = `dot ${state || ""}`;
@@ -589,10 +656,10 @@ async function ensureBsc(){
   const net = await provider.getNetwork();
   if(net.chainId === CFG.chainId) return;
   try{
-    await window.ethereum.request({method:"wallet_switchEthereumChain", params:[{chainId:CFG.chainIdHex}]});
+    await injectedProvider.request({method:"wallet_switchEthereumChain", params:[{chainId:CFG.chainIdHex}]});
   }catch(e){
     if(e.code === 4902){
-      await window.ethereum.request({
+      await injectedProvider.request({
         method:"wallet_addEthereumChain",
         params:[{
           chainId:CFG.chainIdHex,
@@ -604,12 +671,14 @@ async function ensureBsc(){
       });
     } else throw e;
   }
-  provider = new ethers.BrowserProvider(window.ethereum);
+  provider = new ethers.BrowserProvider(injectedProvider);
   signer = await provider.getSigner();
 }
 
 async function connect(){
-  if(!window.ethereum){
+  injectedProvider = await waitForWalletProvider(3500);
+
+  if(!injectedProvider){
     setWalletBadge("err","MetaMask app required");
     $("connectBtn").textContent = "🦊 Open in MetaMask App";
     setStatus("This browser cannot connect directly. Opening CTH Buy inside the MetaMask app…", "warn");
@@ -617,14 +686,14 @@ async function connect(){
     return;
   }
 
-  if(!isMetaMask()){
+  if(!injectedProvider.isMetaMask){
     setWalletBadge("warn","EVM wallet detected");
   }else{
     setWalletBadge("warn","MetaMask detected");
   }
 
   try{
-    provider = new ethers.BrowserProvider(window.ethereum);
+    provider = new ethers.BrowserProvider(injectedProvider);
     await provider.send("eth_requestAccounts", []);
     signer = await provider.getSigner();
     await ensureBsc();
@@ -643,11 +712,13 @@ async function connect(){
     await updateNetworkUI();
     await refreshBalances();
     $("buyBtn").disabled = false;
+
     try{
       const q = new ethers.Contract(CFG.quoter, quoterAbi, provider);
       await getReferenceQuote(q);
     }catch{}
-    setStatus("MetaMask connected on BNB Smart Chain. Choose a quick amount or enter USDT to buy CTH.", "ok");
+
+    setStatus("MetaMask connected on BNB Smart Chain. Your wallet balances are shown above.", "ok");
   }catch(e){
     setWalletBadge("err","Connection failed");
     setStatus(e.shortMessage || e.message || "MetaMask connection failed.", "err");
@@ -672,6 +743,12 @@ async function refreshBalances(){
   $("cthBal").textContent = `CTH balance: ${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})}`;
   $("usdtBscBalance").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
   $("bnbGasBalance").textContent = `${bnbHuman.toLocaleString(undefined,{maximumFractionDigits:6})} BNB`;
+
+  $("summaryCth").textContent = `${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})} CTH`;
+  $("summaryUsdt").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
+  $("summaryBnb").textContent = `${bnbHuman.toLocaleString(undefined,{maximumFractionDigits:6})} BNB`;
+  $("summaryAddress").textContent = `Wallet: ${account}`;
+  $("walletSummary").classList.add("show");
 
   if(bnbHuman < MIN_GAS_BNB){
     $("bnbGasBalance").className = "val gas-low";
@@ -1067,32 +1144,38 @@ document.querySelectorAll(".tf-btn").forEach(btn=>{
 });
 
 async function initWalletUI(){
-  if(window.ethereum){
-    if(isMetaMask()){
+  injectedProvider = await waitForWalletProvider(5000);
+
+  if(injectedProvider){
+    if(injectedProvider.isMetaMask){
       setWalletBadge("warn","MetaMask detected");
       setStatus("MetaMask detected. Connect your wallet to begin.");
     }else{
       setWalletBadge("warn","EVM wallet detected");
       setStatus("An EVM wallet was detected. MetaMask is recommended.");
     }
+
+    provider = new ethers.BrowserProvider(injectedProvider);
     await updateNetworkUI();
 
     try{
-      const accounts = await window.ethereum.request({method:"eth_accounts"});
+      const accounts = await injectedProvider.request({method:"eth_accounts"});
       if(accounts && accounts.length){
-        provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         account = await signer.getAddress();
         $("walletText").textContent = short(account);
         $("connectBtn").textContent = "🦊 MetaMask Connected";
         $("connectBtn").className = "secondary";
         setWalletBadge("ok","MetaMask connected");
+
         const usdt = new ethers.Contract(CFG.usdt, erc20Abi, provider);
         const cth = new ethers.Contract(CFG.cth, erc20Abi, provider);
         usdtDecimals = Number(await usdt.decimals());
         cthDecimals = Number(await cth.decimals());
+
         await refreshBalances();
         $("buyBtn").disabled = false;
+
         try{
           const q = new ethers.Contract(CFG.quoter, quoterAbi, provider);
           await getReferenceQuote(q);
@@ -1107,11 +1190,29 @@ async function initWalletUI(){
   }
 }
 
-if(window.ethereum){
-  window.ethereum.on?.("accountsChanged", ()=>location.reload());
-  window.ethereum.on?.("chainChanged", ()=>location.reload());
+async function bindWalletEvents(){
+  injectedProvider = injectedProvider || getMetaMaskProvider();
+  if(injectedProvider){
+    injectedProvider.on?.("accountsChanged", ()=>location.reload());
+    injectedProvider.on?.("chainChanged", ()=>location.reload());
+  }
 }
-initWalletUI();
+
+window.addEventListener("focus", async ()=>{
+  if(!account){
+    await initWalletUI();
+    await bindWalletEvents();
+  }
+});
+
+window.addEventListener("pageshow", async ()=>{
+  if(!account){
+    await initWalletUI();
+    await bindWalletEvents();
+  }
+});
+
+initWalletUI().then(bindWalletEvents);
 refreshMarket();
 marketTimer = setInterval(refreshMarket, 60000);
 </script>
