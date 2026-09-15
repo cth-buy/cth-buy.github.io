@@ -146,6 +146,14 @@
     .market-stat .val{font-size:16px;font-weight:800;margin-top:4px}
     .market-note{margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5}
 
+    .pay-tabs{
+      display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;
+      padding:5px;background:#091322;border:1px solid var(--line);border-radius:14px
+    }
+    .pay-tab{background:transparent;color:var(--muted);border:0;border-radius:10px;padding:11px;font-weight:800}
+    .pay-tab.active{background:var(--accent);color:#06100f}
+    .pay-hint{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.5}
+    .pay-hint strong{color:var(--ok)}
     .custom-amount-wrap{
       margin-top:12px;padding:13px 14px;
       border:1px solid var(--line);border-radius:14px;background:#0a1424;
@@ -459,22 +467,28 @@
     <div id="gasWarning" class="status"></div>
 
     <input id="amountIn" type="hidden" value="">
-<div class="quick-title">Quick buy amount</div>
+<div class="pay-tabs">
+      <button id="payBnbTab" class="pay-tab active" type="button">BNB · 1 confirmation</button>
+      <button id="payUsdtTab" class="pay-tab" type="button">USDT</button>
+    </div>
+    <div id="payHint" class="pay-hint"><strong>Recommended for mobile:</strong> pay with BNB and confirm only one swap transaction.</div>
+
+    <div class="quick-title">Quick buy amount</div>
     <div class="quick-grid">
-      <button class="quick-btn" data-amount="5">$5</button>
-      <button class="quick-btn" data-amount="10">$10</button>
-      <button class="quick-btn" data-amount="20">$20</button>
-      <button class="quick-btn" data-amount="50">$50</button>
+      <button class="quick-btn" data-amount="0.001">0.001 BNB</button>
+      <button class="quick-btn" data-amount="0.002">0.002 BNB</button>
+      <button class="quick-btn" data-amount="0.005">0.005 BNB</button>
+      <button class="quick-btn" data-amount="0.01">0.01 BNB</button>
     </div>
 
     <div class="custom-amount-wrap">
       <div class="custom-amount-label">
-        <span>Amount to buy</span>
-        <span>USDT on BNB Smart Chain</span>
+        <span>Amount to pay</span>
+        <span>BNB on BNB Smart Chain</span>
       </div>
       <div class="custom-amount-row">
-        <input id="customAmount" inputmode="decimal" placeholder="Enter USDT amount" />
-        <span class="custom-token">USDT (BNB)</span>
+        <input id="customAmount" inputmode="decimal" placeholder="Enter BNB amount" />
+        <span id="customTokenLabel" class="custom-token">BNB</span>
       </div>
     </div>
 
@@ -527,7 +541,7 @@
 
     <div class="grid">
       <button id="quoteBtn" class="secondary">Refresh Quote</button>
-      <button id="buyBtn" disabled>Buy CTH</button>
+      <button id="buyBtn" disabled>Buy CTH with BNB</button>
     </div>
 
     <div id="status" class="status">Connect an EVM wallet to begin.</div>
@@ -555,7 +569,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.7</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.8</footer>
 </div>
 
 <script>
@@ -565,10 +579,12 @@ const CFG = {
   chainIdHex: "0x38",
   chainId: 56n,
   usdt: "0x55d398326f99059fF775485246999027B3197955",
+  wbnb: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
   cth:  "0x8888888809b788CD6e40a2D27e67425D5D0B5d3B",
   router: "0x1b81D678ffb9C0263b24A97847620C99d213eB14",
   quoter: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
-  fee: 500
+  fee: 500,
+  bnbUsdtFee: 500
 };
 
 const erc20Abi = [
@@ -579,11 +595,13 @@ const erc20Abi = [
 ];
 
 const quoterAbi = [
-  "function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96) params) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)"
+  "function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96) params) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)",
+  "function quoteExactInput(bytes path,uint256 amountIn) returns (uint256 amountOut,uint160[] sqrtPriceX96AfterList,uint32[] initializedTicksCrossedList,uint256 gasEstimate)"
 ];
 
 const routerAbi = [
-  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)"
+  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)",
+  "function exactInput((bytes path,address recipient,uint256 deadline,uint256 amountIn,uint256 amountOutMinimum) params) payable returns (uint256 amountOut)"
 ];
 
 let provider, signer, account;
@@ -592,6 +610,7 @@ let usdtDecimals = 18, cthDecimals = 18;
 let lastQuote = 0n, lastAmountIn = 0n;
 let referenceQuote = 0n, quoteTimer = null;
 const MIN_GAS_BNB = 0.0003;
+let paymentMode = "BNB";
 
 const $ = id => document.getElementById(id);
 const short = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : "Not connected";
@@ -895,6 +914,44 @@ async function addCthToMetaMask(){
   }
 }
 
+
+function bnbToCthPath(){
+  return ethers.solidityPacked(
+    ["address","uint24","address","uint24","address"],
+    [CFG.wbnb, CFG.bnbUsdtFee, CFG.usdt, CFG.fee, CFG.cth]
+  );
+}
+
+function setPaymentMode(mode){
+  paymentMode = mode;
+  const bnb = mode === "BNB";
+  $("payBnbTab").classList.toggle("active", bnb);
+  $("payUsdtTab").classList.toggle("active", !bnb);
+  $("customTokenLabel").textContent = bnb ? "BNB" : "USDT (BNB)";
+  $("payAssetLabel").textContent = bnb ? "BNB on BNB Smart Chain" : "USDT on BNB Smart Chain";
+  $("customAmount").placeholder = bnb ? "Enter BNB amount" : "Enter USDT amount";
+  $("buyBtn").textContent = bnb ? "Buy CTH with BNB" : "Buy CTH with USDT";
+  $("payHint").innerHTML = bnb
+    ? "<strong>Recommended for mobile:</strong> one MetaMask confirmation. No token approval required."
+    : "USDT purchases may require an approval transaction the first time.";
+
+  const vals = bnb
+    ? [["0.001","0.001 BNB"],["0.002","0.002 BNB"],["0.005","0.005 BNB"],["0.01","0.01 BNB"]]
+    : [["5","$5"],["10","$10"],["20","$20"],["50","$50"]];
+
+  document.querySelectorAll(".quick-btn").forEach((btn,i)=>{
+    btn.dataset.amount = vals[i][0];
+    btn.textContent = vals[i][1];
+  });
+
+  $("customAmount").value = "";
+  $("amountIn").value = "";
+  $("amountOut").value = "";
+  $("minReceived").textContent = "—";
+  $("priceImpact").textContent = "—";
+  lastQuote = 0n;
+}
+
 async function getReferenceQuote(quoter){
   // 1 USDT reference quote used to derive an indicative CTH/USDT price
   const oneUsdt = ethers.parseUnits("1", usdtDecimals);
@@ -947,31 +1004,36 @@ async function getQuote(){
       $("amountOut").value = "";
       $("minReceived").textContent = "—";
       $("priceImpact").textContent = "—";
-      return setStatus("Enter a USDT amount.", "warn");
+      return setStatus(`Enter a ${paymentMode} amount.`, "warn");
     }
 
-    const amountIn = ethers.parseUnits(raw, usdtDecimals);
     const quoter = new ethers.Contract(CFG.quoter, quoterAbi, provider);
-    setStatus("Reading live PancakeSwap V3 quote…");
+    setStatus(`Reading live ${paymentMode} → CTH quote…`);
 
-    // Pull the 1-USDT reference and requested-size quote together.
-    const [refResult, result] = await Promise.all([
-      quoter.quoteExactInputSingle.staticCall({
-        tokenIn: CFG.usdt,
-        tokenOut: CFG.cth,
-        amountIn: ethers.parseUnits("1", usdtDecimals),
-        fee: CFG.fee,
-        sqrtPriceLimitX96: 0
-      }),
-      quoter.quoteExactInputSingle.staticCall({
+    let amountIn, amountOut;
+    if(paymentMode === "BNB"){
+      amountIn = ethers.parseEther(raw);
+      const result = await quoter.quoteExactInput.staticCall(bnbToCthPath(), amountIn);
+      amountOut = result[0];
+    }else{
+      amountIn = ethers.parseUnits(raw, usdtDecimals);
+      const result = await quoter.quoteExactInputSingle.staticCall({
         tokenIn: CFG.usdt,
         tokenOut: CFG.cth,
         amountIn,
         fee: CFG.fee,
         sqrtPriceLimitX96: 0
-      })
-    ]);
+      });
+      amountOut = result[0];
+    }
 
+    const refResult = await quoter.quoteExactInputSingle.staticCall({
+      tokenIn: CFG.usdt,
+      tokenOut: CFG.cth,
+      amountIn: ethers.parseUnits("1", usdtDecimals),
+      fee: CFG.fee,
+      sqrtPriceLimitX96: 0
+    });
     referenceQuote = refResult[0];
     const cthPerUsdt = Number(ethers.formatUnits(referenceQuote, cthDecimals));
     if(cthPerUsdt > 0){
@@ -979,15 +1041,21 @@ async function getQuote(){
     }
 
     lastAmountIn = amountIn;
-    lastQuote = result[0];
+    lastQuote = amountOut;
     const slip = BigInt($("slippage").value);
     const minOut = lastQuote * (10000n - slip) / 10000n;
 
     $("amountOut").value = formatNum(ethers.formatUnits(lastQuote,cthDecimals), 8);
     $("minReceived").textContent = `${formatNum(ethers.formatUnits(minOut,cthDecimals),8)} CTH`;
-    updatePriceImpact(amountIn, lastQuote);
 
-    setStatus("Live quote loaded. Review estimated CTH, price impact and minimum received before buying.", "ok");
+    if(paymentMode === "USDT"){
+      updatePriceImpact(amountIn, lastQuote);
+    }else{
+      $("priceImpact").textContent = "2-hop route";
+      $("priceImpact").className = "value";
+    }
+
+    setStatus(`Live ${paymentMode} quote loaded. Review minimum received before buying.`, "ok");
     return {amountIn, minOut};
   }catch(e){
     lastQuote = 0n;
@@ -998,33 +1066,66 @@ async function getQuote(){
     return null;
   }
 }
-
 async function buy(){
   if(!signer || !account) return setStatus("Connect wallet first.", "warn");
+
   try{
     const q = await getQuote();
     if(!q) return;
+
+    const bnbBal = await provider.getBalance(account);
+    const bnbHuman = Number(ethers.formatEther(bnbBal));
+
+    if(paymentMode === "BNB"){
+      const reserve = ethers.parseEther(String(MIN_GAS_BNB));
+      if(bnbBal <= q.amountIn + reserve){
+        return setStatus(`Not enough BNB. Keep at least ${MIN_GAS_BNB} BNB aside for gas.`, "err");
+      }
+
+      const router = new ethers.Contract(CFG.router, routerAbi, signer);
+      const deadline = Math.floor(Date.now() / 1000) + 600;
+      setStatus("Confirm one BNB → CTH swap in MetaMask…", "warn");
+
+      const tx = await router.exactInput({
+        path: bnbToCthPath(),
+        recipient: account,
+        deadline,
+        amountIn: q.amountIn,
+        amountOutMinimum: q.minOut
+      }, { value: q.amountIn });
+
+      setStatus(`Swap submitted: ${tx.hash}`, "warn");
+      const receipt = await tx.wait();
+      setStatus(`Purchase confirmed in block ${receipt.blockNumber}.`, "ok");
+      $("successText").textContent = `Your BNB → CTH purchase is confirmed. CTH was sent directly to ${short(account)}.`;
+      $("successBox").classList.add("show");
+      $("txHash").textContent = tx.hash;
+      $("txLink").href = `https://bscscan.com/tx/${tx.hash}`;
+      $("txBox").classList.add("show");
+      await refreshBalances();
+      await getQuote();
+      return;
+    }
+
+    if(bnbHuman < MIN_GAS_BNB){
+      return setStatus("BNB gas balance is too low. Add BNB on BNB Smart Chain before buying CTH.", "err");
+    }
 
     const usdt = new ethers.Contract(CFG.usdt, erc20Abi, signer);
     const bal = await usdt.balanceOf(account);
     if(bal < q.amountIn) return setStatus("USDT (BNB Chain) balance is too low.", "err");
 
-    const bnbBal = await provider.getBalance(account);
-    if(Number(ethers.formatEther(bnbBal)) < MIN_GAS_BNB){
-      return setStatus("BNB gas balance is too low. Add BNB on BNB Smart Chain before buying CTH.", "err");
-    }
-
     const allowance = await usdt.allowance(account, CFG.router);
     if(allowance < q.amountIn){
-      setStatus("Step 1/2: Approve USDT spending in your wallet…", "warn");
+      setStatus("First-time USDT setup: confirm spending approval in MetaMask…", "warn");
       const approveTx = await usdt.approve(CFG.router, q.amountIn);
-      setStatus(`Approval submitted: ${approveTx.hash}`, "warn");
       await approveTx.wait();
     }
 
     const router = new ethers.Contract(CFG.router, routerAbi, signer);
-    setStatus("Step 2/2: Confirm the CTH purchase in your wallet…", "warn");
     const deadline = Math.floor(Date.now() / 1000) + 600;
+    setStatus("Confirm the USDT → CTH swap in MetaMask…", "warn");
+
     const tx = await router.exactInputSingle({
       tokenIn: CFG.usdt,
       tokenOut: CFG.cth,
@@ -1039,27 +1140,27 @@ async function buy(){
     setStatus(`Swap submitted: ${tx.hash}`, "warn");
     const receipt = await tx.wait();
     setStatus(`Purchase confirmed in block ${receipt.blockNumber}.`, "ok");
-    $("successText").textContent = `Your CTH purchase is confirmed in block ${receipt.blockNumber}. The tokens were sent directly to ${short(account)}.`;
+    $("successText").textContent = `Your USDT → CTH purchase is confirmed. CTH was sent directly to ${short(account)}.`;
     $("successBox").classList.add("show");
     $("txHash").textContent = tx.hash;
     $("txLink").href = `https://bscscan.com/tx/${tx.hash}`;
     $("txBox").classList.add("show");
     await refreshBalances();
     await getQuote();
+
   }catch(e){
     console.error("CTH swap error:", e);
     let msg = e.shortMessage || e.reason || e.message || "Swap failed or was rejected.";
     if(String(msg).toLowerCase().includes("user rejected")){
       msg = "Transaction was cancelled in MetaMask.";
     }else if(String(msg).toLowerCase().includes("insufficient funds")){
-      msg = "Not enough BNB to pay the BNB Smart Chain gas fee.";
+      msg = "Not enough BNB to pay the amount plus BNB Smart Chain gas.";
     }else if(String(msg).toLowerCase().includes("execution reverted")){
-      msg = "Swap reverted on-chain. Refresh the quote and try again with a smaller amount or higher slippage.";
+      msg = "Swap reverted on-chain. Refresh the quote and try a smaller amount or higher slippage.";
     }
     setStatus(msg, "err");
   }
 }
-
 $("connectBtn").addEventListener("click", connect);
 
 $("openMetaMaskBtn").addEventListener("click", openMetaMask);
@@ -1082,6 +1183,8 @@ $("switchNetworkBtn").addEventListener("click", async ()=>{
 
 $("quoteBtn").addEventListener("click", getQuote);
 $("buyBtn").addEventListener("click", buy);
+$("payBnbTab").addEventListener("click", ()=>setPaymentMode("BNB"));
+$("payUsdtTab").addEventListener("click", ()=>setPaymentMode("USDT"));
 
 document.querySelectorAll(".quick-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>{
@@ -1323,6 +1426,7 @@ window.addEventListener("pageshow", async ()=>{
   }
 });
 
+setPaymentMode("BNB");
 initWalletUI().then(bindWalletEvents);
 refreshMarket();
 marketTimer = setInterval(refreshMarket, 60000);
