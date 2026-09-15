@@ -1,8 +1,8 @@
-# CTH Direct Buy — Rev.04
+# CTH Direct Buy — Rev.04.1
 
-Rev.04 updates the existing CTH direct-buy page without removing the Rev.03 swap functionality.
+Rev.04.1 updates the existing CTH direct-buy page without removing the Rev.03 swap functionality.
 
-## New in Rev.04
+## New in Rev.04.1
 - Sticky navigation bar
 - Navigation buttons: Home / About CTH / Buy CTH / AiBoxs / AiBox Cloud
 - CTH hero banner
@@ -13,7 +13,7 @@ Rev.04 updates the existing CTH direct-buy page without removing the Rev.03 swap
 - Link to AiBox Cloud: https://aibox.myqnapcloud.com/shop
 - Link to CTH contract on BscScan
 - Existing MetaMask + PancakeSwap V3 buy flow preserved
-- Footer updated to Rev.04
+- Footer updated to Rev.04.1
 
 ## Files
 - index.html
@@ -22,6 +22,9 @@ Rev.04 updates the existing CTH direct-buy page without removing the Rev.03 swap
 
 ## GitHub Desktop
 Replace the current repo files with these files, commit as:
-`Update CTH web Rev.04`
+`Update CTH web Rev.04.1`
 
 Then Push origin.
+
+
+Updated banner: replaced with the user-selected CTH hero banner image.
