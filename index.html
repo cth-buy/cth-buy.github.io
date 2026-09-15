@@ -111,6 +111,27 @@
     .section-heading h2{margin:0;font-size:22px}
     .section-heading p{margin:4px 0 0;color:var(--muted);font-size:13px}
 
+
+    .custom-amount-wrap{
+      margin-top:12px;padding:13px 14px;
+      border:1px solid var(--line);border-radius:14px;background:#0a1424;
+    }
+    .custom-amount-label{
+      display:flex;justify-content:space-between;gap:10px;
+      color:var(--muted);font-size:12px;margin-bottom:7px;
+    }
+    .custom-amount-row{
+      display:flex;align-items:center;gap:10px;
+    }
+    .custom-amount-row input{
+      font-size:22px;min-width:0;
+      background:#091322;border:1px solid var(--line);
+      border-radius:12px;padding:11px 12px;
+    }
+    .custom-token{
+      font-weight:800;font-size:15px;white-space:nowrap;
+    }
+
     .quick-title{margin-top:14px;font-size:12px;color:var(--muted)}
     .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
     .quick-btn{padding:10px 8px;background:#17263e;color:var(--text);border:1px solid var(--line);font-size:13px}
@@ -265,6 +286,17 @@
       <button class="quick-btn" data-amount="50">$50</button>
     </div>
 
+    <div class="custom-amount-wrap">
+      <div class="custom-amount-label">
+        <span>Custom amount</span>
+        <span>Enter any USDT amount</span>
+      </div>
+      <div class="custom-amount-row">
+        <input id="customAmount" inputmode="decimal" placeholder="e.g. 25.00" />
+        <span class="custom-token">USDT</span>
+      </div>
+    </div>
+
     <div class="swapicon">↓</div>
 
     <div class="amountbox">
@@ -337,7 +369,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.04.1</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.04.2</footer>
 </div>
 
 <script>
@@ -669,11 +701,25 @@ $("buyBtn").addEventListener("click", buy);
 document.querySelectorAll(".quick-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     $("amountIn").value = btn.dataset.amount;
+    $("customAmount").value = btn.dataset.amount;
     getQuote();
   });
 });
 
+$("customAmount").addEventListener("input", ()=>{
+  $("amountIn").value = $("customAmount").value;
+  lastQuote = 0n;
+  $("amountOut").value = "";
+  $("minReceived").textContent = "—";
+  $("priceImpact").textContent = "—";
+  clearTimeout(quoteTimer);
+  if($("customAmount").value && provider){
+    quoteTimer = setTimeout(getQuote, 450);
+  }
+});
+
 $("amountIn").addEventListener("input", ()=>{
+  $("customAmount").value = $("amountIn").value;
   lastQuote=0n;
   $("amountOut").value="";
   $("minReceived").textContent="—";
