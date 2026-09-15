@@ -274,6 +274,7 @@
         <button class="tf-btn" data-tf="1h">1H</button>
         <button class="tf-btn" data-tf="6h">6H</button>
         <button class="tf-btn active" data-tf="24h">24H</button>
+        <button class="tf-btn" data-tf="1m">1M</button>
       </div>
     </div>
 
@@ -448,7 +449,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05.1</footer>
 </div>
 
 <script>
@@ -847,6 +848,7 @@ async function fetchPoolStats(){
 function tfConfig(tf){
   if(tf === "1h") return {timeframe:"minute", aggregate:5, limit:12};
   if(tf === "6h") return {timeframe:"minute", aggregate:15, limit:24};
+  if(tf === "1m") return {timeframe:"day", aggregate:1, limit:30};
   return {timeframe:"hour", aggregate:1, limit:24};
 }
 
@@ -869,9 +871,10 @@ function renderCthChart(points){
 
   const labels = points.map(p=>{
     const d = p.t;
-    return activeTf === "24h"
-      ? d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})
-      : d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    if(activeTf === "1m"){
+      return d.toLocaleDateString([], {day:"2-digit", month:"short"});
+    }
+    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
   });
   const data = points.map(p=>p.close);
 
