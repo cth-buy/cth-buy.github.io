@@ -489,7 +489,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.3</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.4</footer>
 </div>
 
 <script>
@@ -557,10 +557,26 @@ async function updateNetworkUI(){
 }
 
 function openMetaMask(){
-  const hostPath = window.location.host + window.location.pathname + window.location.search + window.location.hash;
-  const clean = hostPath.replace(/^\/+/, "");
-  const deepLink = `https://metamask.app.link/dapp/${clean}`;
-  window.location.href = deepLink;
+  const target = "cth-buy.github.io";
+  const customScheme = `metamask://dapp/${target}`;
+  const universalLink = `https://metamask.app.link/dapp/${target}`;
+
+  let leftPage = false;
+  const markLeft = ()=>{ leftPage = true; };
+  window.addEventListener("blur", markLeft, {once:true});
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden) leftPage = true;
+  }, {once:true});
+
+  // Try opening the MetaMask app directly.
+  window.location.href = customScheme;
+
+  // If the browser stayed on-page, fall back to MetaMask universal link.
+  setTimeout(()=>{
+    if(!leftPage){
+      window.location.href = universalLink;
+    }
+  }, 900);
 }
 
 
@@ -594,13 +610,10 @@ async function ensureBsc(){
 
 async function connect(){
   if(!window.ethereum){
-    setWalletBadge("err","MetaMask not detected");
-    if(isMobile){
-      setStatus("Opening this page in MetaMask Mobile…", "warn");
-      setTimeout(openMetaMask, 150);
-    }else{
-      setStatus("MetaMask extension is not detected. Install MetaMask, then reload this page.", "err");
-    }
+    setWalletBadge("err","MetaMask app required");
+    $("connectBtn").textContent = "🦊 Open in MetaMask App";
+    setStatus("This browser cannot connect directly. Opening CTH Buy inside the MetaMask app…", "warn");
+    openMetaMask();
     return;
   }
 
@@ -1089,12 +1102,8 @@ async function initWalletUI(){
   }else{
     setWalletBadge("err","MetaMask not detected");
     $("networkText").textContent = "Wallet provider not detected";
-    if(isMobile){
-      setStatus("Mobile browser detected. Tap Connect MetaMask to open this page inside MetaMask Mobile.", "warn");
-      $("connectBtn").textContent = "🦊 Open in MetaMask";
-    }else{
-      setStatus("Install the MetaMask browser extension, then reload this page.", "warn");
-    }
+    $("connectBtn").textContent = "🦊 Open in MetaMask App";
+    setStatus("Tap Open in MetaMask App to continue. The CTH Buy page will open inside MetaMask.", "warn");
   }
 }
 
