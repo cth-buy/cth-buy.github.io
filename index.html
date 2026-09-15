@@ -178,6 +178,27 @@
     .impact-low{color:var(--ok)} .impact-mid{color:var(--warn)} .impact-high{color:var(--danger)}
 
 
+
+    .account-picker{
+      margin-top:12px;padding:13px 14px;border:1px solid var(--line);
+      border-radius:14px;background:#0a1424
+    }
+    .account-picker-head{
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+      margin-bottom:8px;flex-wrap:wrap
+    }
+    .account-picker label{font-size:12px;color:var(--muted)}
+    .account-select{
+      width:100%;padding:11px 12px;border-radius:12px;
+      border:1px solid var(--line);background:#091322;color:var(--text);
+      font-size:14px;outline:none
+    }
+    .choose-account-btn{
+      margin-top:9px;background:#17263e;color:var(--text);
+      border:1px solid var(--line)
+    }
+    .choose-account-btn:hover{background:#213555;color:var(--text)}
+
     .wallet-summary{
       display:none;margin-top:12px;padding:14px;
       border:1px solid var(--line);border-radius:14px;background:#0a1424
@@ -390,6 +411,15 @@
       </div>
     </div>
 
+    <div id="accountPicker" class="account-picker" style="display:none">
+      <div class="account-picker-head">
+        <label for="accountSelect">Select wallet account</label>
+        <span id="accountCount" class="muted"></span>
+      </div>
+      <select id="accountSelect" class="account-select"></select>
+      <button id="chooseAccountBtn" class="choose-account-btn">Choose another account in MetaMask</button>
+    </div>
+
     <div id="walletSummary" class="wallet-summary">
       <div class="wallet-summary-grid">
         <div class="wallet-summary-item">
@@ -525,7 +555,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.6</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.7</footer>
 </div>
 
 <script>
@@ -711,6 +741,7 @@ async function connect(){
 
     await updateNetworkUI();
     await refreshBalances();
+    await loadAuthorizedAccounts();
     $("buyBtn").disabled = false;
 
     try{
@@ -722,6 +753,75 @@ async function connect(){
   }catch(e){
     setWalletBadge("err","Connection failed");
     setStatus(e.shortMessage || e.message || "MetaMask connection failed.", "err");
+  }
+}
+
+
+function formatAccountLabel(addr, index){
+  return `Account ${index + 1} · ${addr.slice(0,6)}…${addr.slice(-4)}`;
+}
+
+async function loadAuthorizedAccounts(){
+  if(!injectedProvider) return [];
+  try{
+    const accounts = await injectedProvider.request({method:"eth_accounts"});
+    const select = $("accountSelect");
+    select.innerHTML = "";
+
+    accounts.forEach((addr, i)=>{
+      const opt = document.createElement("option");
+      opt.value = addr;
+      opt.textContent = formatAccountLabel(addr, i);
+      if(account && addr.toLowerCase() === account.toLowerCase()) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    $("accountCount").textContent = accounts.length ? `${accounts.length} available` : "";
+    $("accountPicker").style.display = accounts.length ? "block" : "none";
+    return accounts;
+  }catch(e){
+    console.warn("Could not load authorized accounts", e);
+    return [];
+  }
+}
+
+async function switchDappAccount(addr){
+  if(!provider || !addr) return;
+  try{
+    signer = await provider.getSigner(addr);
+    account = await signer.getAddress();
+    $("walletText").textContent = short(account);
+    await refreshBalances();
+    setStatus(`Using ${short(account)} for CTH Buy.`, "ok");
+  }catch(e){
+    setStatus(e.shortMessage || e.message || "Could not switch account.", "err");
+  }
+}
+
+async function chooseAnotherAccount(){
+  if(!injectedProvider){
+    return openMetaMask();
+  }
+  try{
+    await injectedProvider.request({
+      method:"wallet_requestPermissions",
+      params:[{eth_accounts:{}}]
+    });
+    const accounts = await loadAuthorizedAccounts();
+    if(accounts.length){
+      await switchDappAccount(accounts[0]);
+    }
+  }catch(e){
+    // Some MetaMask builds may not support wallet_requestPermissions reliably.
+    try{
+      await injectedProvider.request({method:"eth_requestAccounts"});
+      const accounts = await loadAuthorizedAccounts();
+      if(accounts.length){
+        await switchDappAccount(accounts[0]);
+      }
+    }catch(e2){
+      setStatus(e2.shortMessage || e2.message || "Open MetaMask and choose the account you want to connect.", "warn");
+    }
   }
 }
 
@@ -964,6 +1064,10 @@ $("connectBtn").addEventListener("click", connect);
 
 $("openMetaMaskBtn").addEventListener("click", openMetaMask);
 $("addCthBtn").addEventListener("click", addCthToMetaMask);
+$("chooseAccountBtn").addEventListener("click", chooseAnotherAccount);
+$("accountSelect").addEventListener("change", async (e)=>{
+  await switchDappAccount(e.target.value);
+});
 $("switchNetworkBtn").addEventListener("click", async ()=>{
   try{
     if(!window.ethereum) return setStatus("MetaMask is not detected.", "err");
@@ -1173,6 +1277,7 @@ async function initWalletUI(){
         cthDecimals = Number(await cth.decimals());
 
         await refreshBalances();
+        await loadAuthorizedAccounts();
         $("buyBtn").disabled = false;
 
         try{
@@ -1192,7 +1297,14 @@ async function initWalletUI(){
 async function bindWalletEvents(){
   injectedProvider = injectedProvider || getMetaMaskProvider();
   if(injectedProvider){
-    injectedProvider.on?.("accountsChanged", ()=>location.reload());
+    injectedProvider.on?.("accountsChanged", async (accounts)=>{
+      if(accounts && accounts.length){
+        await loadAuthorizedAccounts();
+        await switchDappAccount(accounts[0]);
+      }else{
+        location.reload();
+      }
+    });
     injectedProvider.on?.("chainChanged", ()=>location.reload());
   }
 }
