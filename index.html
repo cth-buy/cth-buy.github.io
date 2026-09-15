@@ -489,7 +489,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.2</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06.3</footer>
 </div>
 
 <script>
@@ -557,8 +557,10 @@ async function updateNetworkUI(){
 }
 
 function openMetaMask(){
-  const current = window.location.href.replace(/^https?:\/\//, "");
-  window.location.href = `https://metamask.app.link/dapp/${current}`;
+  const hostPath = window.location.host + window.location.pathname + window.location.search + window.location.hash;
+  const clean = hostPath.replace(/^\/+/, "");
+  const deepLink = `https://metamask.app.link/dapp/${clean}`;
+  window.location.href = deepLink;
 }
 
 
@@ -594,7 +596,8 @@ async function connect(){
   if(!window.ethereum){
     setWalletBadge("err","MetaMask not detected");
     if(isMobile){
-      setStatus("MetaMask is not detected in this browser. Tap “Open in MetaMask” to continue.", "warn");
+      setStatus("Opening this page in MetaMask Mobile…", "warn");
+      setTimeout(openMetaMask, 150);
     }else{
       setStatus("MetaMask extension is not detected. Install MetaMask, then reload this page.", "err");
     }
@@ -1087,7 +1090,8 @@ async function initWalletUI(){
     setWalletBadge("err","MetaMask not detected");
     $("networkText").textContent = "Wallet provider not detected";
     if(isMobile){
-      setStatus("Open this site inside MetaMask Mobile to connect and buy CTH.", "warn");
+      setStatus("Mobile browser detected. Tap Connect MetaMask to open this page inside MetaMask Mobile.", "warn");
+      $("connectBtn").textContent = "🦊 Open in MetaMask";
     }else{
       setStatus("Install the MetaMask browser extension, then reload this page.", "warn");
     }
