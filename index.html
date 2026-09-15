@@ -176,6 +176,31 @@
     .metric{padding:10px;border:1px solid var(--line);border-radius:12px;background:#091322}
     .metric .value{font-weight:750;margin-top:3px}
     .impact-low{color:var(--ok)} .impact-mid{color:var(--warn)} .impact-high{color:var(--danger)}
+
+    .balance-strip{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px
+    }
+    .balance-chip{
+      padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1424
+    }
+    .balance-chip .label{font-size:11px;color:var(--muted)}
+    .balance-chip .val{font-size:15px;font-weight:800;margin-top:3px}
+    .gas-ok{color:var(--ok)} .gas-low{color:var(--danger)}
+    .success-box{
+      display:none;margin-top:14px;padding:16px;border:1px solid rgba(118,230,167,.35);
+      border-radius:14px;background:rgba(31,96,64,.18)
+    }
+    .success-box.show{display:block}
+    .success-title{font-size:16px;font-weight:800;color:var(--ok)}
+    .success-text{margin-top:5px;color:var(--muted);font-size:13px;line-height:1.5}
+    .wallet-tools{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px
+    }
+    .wallet-tool-btn{
+      background:#17263e;color:var(--text);border:1px solid var(--line)
+    }
+    .wallet-tool-btn:hover{background:#213555;color:var(--text)}
+
     .tx-box{display:none;margin-top:13px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
     .tx-box.show{display:block}
     .tx-link{display:inline-flex;margin-top:8px;padding:10px 12px;border-radius:11px;background:#17263e;border:1px solid var(--line);color:var(--accent);font-weight:700;font-size:13px}
@@ -194,7 +219,7 @@
     .chain-box strong{font-size:13px}
 
     @media(max-width:760px){.topnav-inner{align-items:flex-start;flex-direction:column}.nav-links{width:100%;justify-content:flex-start}.about{grid-template-columns:1fr}.feature-list{grid-template-columns:1fr}.hero-card,.hero-card img.banner{min-height:220px}.market-stats{grid-template-columns:1fr 1fr}.chart-wrap{height:260px}}
-    @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
+    @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.balance-strip,.wallet-tools{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
   </style>
 </head>
 <body>
@@ -347,6 +372,26 @@
       </div>
     </div>
 
+    <div class="balance-strip">
+      <div class="balance-chip">
+        <div class="label">USDT on BNB Smart Chain</div>
+        <div id="usdtBscBalance" class="val">—</div>
+      </div>
+      <div class="balance-chip">
+        <div class="label">BNB gas balance</div>
+        <div id="bnbGasBalance" class="val">—</div>
+      </div>
+    </div>
+
+    <div class="wallet-tools">
+      <button id="addCthBtn" class="wallet-tool-btn">＋ Add CTH to MetaMask</button>
+      <a href="https://bscscan.com/token/0x8888888809b788CD6e40a2D27e67425D5D0B5d3B" target="_blank" rel="noopener" style="text-decoration:none">
+        <button type="button" class="wallet-tool-btn">View CTH on BscScan ↗</button>
+      </a>
+    </div>
+
+    <div id="gasWarning" class="status"></div>
+
     <div class="amountbox">
       <div class="row">
         <span class="muted">You pay</span>
@@ -354,7 +399,7 @@
       </div>
       <div class="row" style="margin-top:7px">
         <input id="amountIn" inputmode="decimal" placeholder="0.00" />
-        <div class="token">USDT</div>
+        <div class="token">USDT (BNB)</div>
       </div>
     </div>
 
@@ -373,7 +418,7 @@
       </div>
       <div class="custom-amount-row">
         <input id="customAmount" inputmode="decimal" placeholder="e.g. 25.00" />
-        <span class="custom-token">USDT</span>
+        <span class="custom-token">USDT (BNB)</span>
       </div>
     </div>
 
@@ -431,6 +476,11 @@
 
     <div id="status" class="status">Connect an EVM wallet to begin.</div>
 
+    <div id="successBox" class="success-box">
+      <div class="success-title">✓ Purchase Successful</div>
+      <div id="successText" class="success-text">CTH was sent directly to your connected wallet.</div>
+    </div>
+
     <div id="txBox" class="tx-box">
       <div class="muted">Latest purchase transaction</div>
       <div id="txHash" style="margin-top:5px;font-size:12px;word-break:break-all">—</div>
@@ -449,7 +499,7 @@
       PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
     </div>
   </div>
-  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.05.2</footer>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.06</footer>
 </div>
 
 <script>
@@ -484,6 +534,7 @@ let provider, signer, account;
 let usdtDecimals = 18, cthDecimals = 18;
 let lastQuote = 0n, lastAmountIn = 0n;
 let referenceQuote = 0n, quoteTimer = null;
+const MIN_GAS_BNB = 0.0003;
 
 const $ = id => document.getElementById(id);
 const short = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : "Not connected";
@@ -601,9 +652,30 @@ async function refreshBalances(){
   if(!account || !provider) return;
   const usdt = new ethers.Contract(CFG.usdt, erc20Abi, provider);
   const cth = new ethers.Contract(CFG.cth, erc20Abi, provider);
-  const [u,c] = await Promise.all([usdt.balanceOf(account), cth.balanceOf(account)]);
-  $("usdtBal").textContent = `USDT balance: ${Number(ethers.formatUnits(u,usdtDecimals)).toLocaleString(undefined,{maximumFractionDigits:4})}`;
-  $("cthBal").textContent = `CTH balance: ${Number(ethers.formatUnits(c,cthDecimals)).toLocaleString(undefined,{maximumFractionDigits:6})}`;
+  const [u,c,bnb] = await Promise.all([
+    usdt.balanceOf(account),
+    cth.balanceOf(account),
+    provider.getBalance(account)
+  ]);
+
+  const usdtHuman = Number(ethers.formatUnits(u,usdtDecimals));
+  const cthHuman = Number(ethers.formatUnits(c,cthDecimals));
+  const bnbHuman = Number(ethers.formatEther(bnb));
+
+  $("usdtBal").textContent = `USDT (BNB) balance: ${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})}`;
+  $("cthBal").textContent = `CTH balance: ${cthHuman.toLocaleString(undefined,{maximumFractionDigits:6})}`;
+  $("usdtBscBalance").textContent = `${usdtHuman.toLocaleString(undefined,{maximumFractionDigits:4})} USDT`;
+  $("bnbGasBalance").textContent = `${bnbHuman.toLocaleString(undefined,{maximumFractionDigits:6})} BNB`;
+
+  if(bnbHuman < MIN_GAS_BNB){
+    $("bnbGasBalance").className = "val gas-low";
+    $("gasWarning").textContent = "Low BNB gas balance. Add a small amount of BNB on BNB Smart Chain before buying.";
+    $("gasWarning").className = "status err";
+  }else{
+    $("bnbGasBalance").className = "val gas-ok";
+    $("gasWarning").textContent = "BNB gas balance looks sufficient for a small swap.";
+    $("gasWarning").className = "status ok";
+  }
 }
 
 
@@ -611,6 +683,34 @@ function formatNum(value, max=8){
   const n = Number(value);
   if(!Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined,{maximumFractionDigits:max});
+}
+
+
+async function addCthToMetaMask(){
+  if(!window.ethereum){
+    return setStatus("MetaMask is not detected.", "err");
+  }
+  try{
+    await ensureBsc();
+    const wasAdded = await window.ethereum.request({
+      method: "wallet_watchAsset",
+      params: {
+        type: "ERC20",
+        options: {
+          address: CFG.cth,
+          symbol: "CTH",
+          decimals: cthDecimals || 18
+        }
+      }
+    });
+    if(wasAdded){
+      setStatus("CTH was added to MetaMask.", "ok");
+    }else{
+      setStatus("CTH was not added to MetaMask.", "warn");
+    }
+  }catch(e){
+    setStatus(e.shortMessage || e.message || "Could not add CTH to MetaMask.", "err");
+  }
 }
 
 async function getReferenceQuote(quoter){
@@ -725,7 +825,12 @@ async function buy(){
 
     const usdt = new ethers.Contract(CFG.usdt, erc20Abi, signer);
     const bal = await usdt.balanceOf(account);
-    if(bal < q.amountIn) return setStatus("USDT balance is too low.", "err");
+    if(bal < q.amountIn) return setStatus("USDT (BNB Chain) balance is too low.", "err");
+
+    const bnbBal = await provider.getBalance(account);
+    if(Number(ethers.formatEther(bnbBal)) < MIN_GAS_BNB){
+      return setStatus("BNB gas balance is too low. Add BNB on BNB Smart Chain before buying CTH.", "err");
+    }
 
     const allowance = await usdt.allowance(account, CFG.router);
     if(allowance < q.amountIn){
@@ -752,6 +857,8 @@ async function buy(){
     setStatus(`Swap submitted: ${tx.hash}`, "warn");
     const receipt = await tx.wait();
     setStatus(`Purchase confirmed in block ${receipt.blockNumber}.`, "ok");
+    $("successText").textContent = `Your CTH purchase is confirmed in block ${receipt.blockNumber}. The tokens were sent directly to ${short(account)}.`;
+    $("successBox").classList.add("show");
     $("txHash").textContent = tx.hash;
     $("txLink").href = `https://bscscan.com/tx/${tx.hash}`;
     $("txBox").classList.add("show");
@@ -774,6 +881,7 @@ async function buy(){
 $("connectBtn").addEventListener("click", connect);
 
 $("openMetaMaskBtn").addEventListener("click", openMetaMask);
+$("addCthBtn").addEventListener("click", addCthToMetaMask);
 $("switchNetworkBtn").addEventListener("click", async ()=>{
   try{
     if(!window.ethereum) return setStatus("MetaMask is not detected.", "err");
